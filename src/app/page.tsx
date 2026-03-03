@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
-import { getServerLang } from "@/lib/server-lang";
 import { getPrimaryStore } from "@/lib/store";
+
+export const revalidate = 120;
 
 function money(paise: number) {
   return `Rs ${Math.round((paise || 0) / 100)}`;
@@ -29,33 +30,7 @@ function normalizeCategory(value: string | null) {
 }
 
 export default async function HomePage() {
-  const lang = await getServerLang();
-  const hi = lang === "hi";
   const store = await getPrimaryStore();
-
-  const t = {
-    badge: hi ? "स्थानीय ग्रोसरी स्टोर" : "Local grocery store",
-    hero: hi ? "ताज़े प्रोडक्ट्स, सही कीमत, तेज़ डिलीवरी।" : "Fresh products, fair prices, fast delivery.",
-    heroSub:
-      hi
-        ? "अपने भरोसेमंद स्टोर से जल्दी ऑर्डर करें।"
-        : "Order quickly from your trusted neighborhood store.",
-    explore: hi ? "प्रोडक्ट देखें" : "Browse products",
-    track: hi ? "मेरे ऑर्डर" : "My orders",
-    liveProducts: hi ? "लाइव प्रोडक्ट्स" : "Live products",
-    paymentOptions: hi ? "पेमेंट विकल्प" : "Payment options",
-    codUpi: hi ? "COD और UPI" : "COD and UPI",
-    browseByCategory: hi ? "कैटेगरी के अनुसार देखें" : "Browse by category",
-    viewCatalog: hi ? "पूरा कैटलॉग" : "Full catalog",
-    trending: hi ? "लोकप्रिय प्रोडक्ट्स" : "Trending products",
-    searchMore: hi ? "और खोजें" : "Search more",
-    newArrivals: hi ? "नए प्रोडक्ट्स" : "New arrivals",
-    exploreAll: hi ? "सभी देखें" : "Explore all",
-    noImage: hi ? "कोई इमेज नहीं" : "No image",
-    view: hi ? "देखें" : "View",
-    catalog: hi ? "प्रोडक्ट कैटलॉग" : "Product catalog",
-    openCatalog: hi ? "कैटलॉग खोलें" : "Open catalog",
-  };
 
   if (!store) {
     return (
@@ -67,30 +42,51 @@ export default async function HomePage() {
     );
   }
 
-  const trending = await prisma.product.findMany({
-    where: { shopId: store.id, isActive: true, inStock: true, showInTrending: true },
-    orderBy: [{ updatedAt: "desc" }],
-    take: 10,
-  });
-
-  const freshArrivals = await prisma.product.findMany({
-    where: { shopId: store.id, isActive: true, inStock: true, showInNewArrivals: true },
-    orderBy: [{ createdAt: "desc" }],
-    take: 6,
-  });
-
-  const rawCats = await prisma.product.findMany({
-    where: { shopId: store.id, isActive: true, category: { not: null } },
-    distinct: ["category"],
-    select: { category: true },
-    take: 20,
-  });
+  const [trending, freshArrivals, rawCats] = await Promise.all([
+    prisma.product.findMany({
+      where: { shopId: store.id, isActive: true, inStock: true, showInTrending: true },
+      orderBy: [{ updatedAt: "desc" }],
+      take: 10,
+    }),
+    prisma.product.findMany({
+      where: { shopId: store.id, isActive: true, inStock: true, showInNewArrivals: true },
+      orderBy: [{ createdAt: "desc" }],
+      take: 6,
+    }),
+    prisma.product.findMany({
+      where: { shopId: store.id, isActive: true, category: { not: null } },
+      distinct: ["category"],
+      select: { category: true },
+      take: 20,
+    }),
+  ]);
 
   const categories = Array.from(
     new Set(rawCats.map((c) => normalizeCategory(c.category)).filter((c): c is string => !!c))
   ).slice(0, 12);
 
   const liveProductsCount = trending.length + freshArrivals.length;
+
+  const t = {
+    badge: "Local grocery store",
+    hero: "Fresh products, fair prices, fast delivery.",
+    heroSub: "Order quickly from your trusted neighborhood store.",
+    explore: "Browse products",
+    track: "My orders",
+    liveProducts: "Live products",
+    paymentOptions: "Payment options",
+    codUpi: "COD and UPI",
+    browseByCategory: "Browse by category",
+    viewCatalog: "Full catalog",
+    trending: "Trending products",
+    searchMore: "Search more",
+    newArrivals: "New arrivals",
+    exploreAll: "Explore all",
+    noImage: "No image",
+    view: "View",
+    catalog: "Product catalog",
+    openCatalog: "Open catalog",
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 md:py-8">
@@ -193,7 +189,6 @@ export default async function HomePage() {
                       fill
                       className="object-contain p-2 drop-shadow-[0_8px_18px_rgba(0,0,0,0.2)] transition group-hover:scale-[1.03]"
                       sizes="220px"
-                      unoptimized
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-xs text-neutral-400">
@@ -238,7 +233,6 @@ export default async function HomePage() {
                       fill
                       className="object-contain p-1.5 drop-shadow-[0_5px_10px_rgba(0,0,0,0.18)]"
                       sizes="76px"
-                      unoptimized
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-[11px] text-neutral-400">
