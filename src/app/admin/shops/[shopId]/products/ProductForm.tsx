@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Initial = {
@@ -74,6 +74,7 @@ export default function ProductForm({
   const shopPricePaise = useMemo(() => paiseFromRupeeInput(shopPriceInput), [shopPriceInput]);
   const appPricePaise = useMemo(() => paiseFromRupeeInput(appPriceInput), [appPriceInput]);
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(init.imageUrl?.trim() ? init.imageUrl.trim() : "");
 
@@ -202,9 +203,10 @@ export default function ProductForm({
         <label className="text-sm font-medium">Product image</label>
 
         <input
+          ref={fileInputRef}
           type="file"
-          accept="image/*"
-          className="text-sm"
+          accept="image/png,image/jpeg,image/webp"
+          className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0] || null;
             setFile(f);
@@ -218,7 +220,25 @@ export default function ProductForm({
           }}
         />
 
-        <div className="text-xs text-gray-600">(Optional) Choose a file. It will upload to <b>/public/uploads</b>.</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="rounded-lg border px-3 py-2 text-sm font-medium hover:bg-gray-50"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Choose image
+          </button>
+
+          {file ? (
+            <span className="truncate text-xs text-gray-700">{file.name}</span>
+          ) : (
+            <span className="text-xs text-gray-500">No file chosen</span>
+          )}
+        </div>
+
+        <div className="text-xs text-gray-600">
+          Supported formats: JPG, PNG, WEBP. File will upload to <b>/public/uploads</b>.
+        </div>
 
         <label className="text-xs text-gray-600">Or paste Image URL (optional):</label>
         <input
