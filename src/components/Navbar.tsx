@@ -24,6 +24,7 @@ export default function Navbar() {
   const sp = useSearchParams();
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [logoSrc, setLogoSrc] = useState("/brand-logo.svg");
   const settingsRef = useRef<HTMLDivElement | null>(null);
 
   const {
@@ -64,20 +65,21 @@ export default function Navbar() {
     <div className="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 backdrop-blur">
       <div className="mx-auto max-w-6xl px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="flex min-w-0 items-center gap-2">
+          <a href="/" className="flex min-w-0 items-center gap-2">
             <img
-              src="/brand-logo.svg"
+              src={logoSrc}
               alt="BabaiBazaar logo"
               className="h-10 w-10 rounded-lg border border-neutral-200 object-cover"
+              onError={() => setLogoSrc("/next.svg")}
             />
             <div className="min-w-0">
               <div className="truncate text-base font-semibold text-neutral-900">BabaiBazaar</div>
               <div className="hidden text-xs text-emerald-700 sm:block">Fast local delivery</div>
             </div>
-          </Link>
+          </a>
 
           <div className="flex items-center gap-2">
-            <Link
+            <a
               href="/"
               className={`inline-flex items-center gap-1 rounded-xl border px-2.5 py-2 text-xs font-medium md:hidden ${
                 pathname === "/" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-neutral-700"
@@ -85,7 +87,7 @@ export default function Navbar() {
             >
               <House className="h-4 w-4" />
               Home
-            </Link>
+            </a>
 
             <div className="relative" ref={settingsRef}>
               <button
@@ -189,6 +191,22 @@ export default function Navbar() {
             if (pathname === "/my-orders" && item.view === "orders") isActive = sp.get("view") !== "wallet";
 
             const Icon = item.icon;
+            if (item.href === "/") {
+              return (
+                <a
+                  key="home-anchor"
+                  href="/"
+                  className={`inline-flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium transition md:flex-row md:gap-1.5 md:px-2.5 md:text-sm ${
+                    pathname === "/" ? "bg-emerald-600 text-white shadow-sm" : "text-neutral-700 hover:bg-white hover:text-neutral-900"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate leading-none md:hidden">{item.shortLabel}</span>
+                  <span className="hidden md:inline">{item.label}</span>
+                </a>
+              );
+            }
+
             return (
               <Link
                 key={item.href}
