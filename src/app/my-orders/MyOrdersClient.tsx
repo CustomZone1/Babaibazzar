@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useSettings } from "@/lib/settings";
 
@@ -41,9 +40,8 @@ function isOpenOrder(status: string) {
 
 export default function MyOrdersClient() {
   const { lang, isLoggedIn, isAuthLoading, userUsername } = useSettings();
-  const sp = useSearchParams();
   const hi = lang === "hi";
-  const isWalletView = sp.get("view") === "wallet";
+  const [isWalletView, setIsWalletView] = useState(false);
 
   const ORDER_STEPS = useMemo(
     () =>
@@ -162,6 +160,12 @@ export default function MyOrdersClient() {
       setWalletLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const view = new URLSearchParams(window.location.search).get("view");
+    setIsWalletView(view === "wallet");
+  }, []);
 
   useEffect(() => {
     if (isLoggedIn) {
