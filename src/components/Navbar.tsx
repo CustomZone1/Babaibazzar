@@ -27,7 +27,6 @@ export default function Navbar() {
   const settingsRef = useRef<HTMLDivElement | null>(null);
 
   const {
-    isPhoneUi,
     notifications,
     setNotifications,
     isLoggedIn,
@@ -63,25 +62,23 @@ export default function Navbar() {
 
   return (
     <div className="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 backdrop-blur">
-      <div className={`mx-auto flex max-w-6xl gap-3 px-4 py-3 ${isPhoneUi ? "flex-wrap items-center" : "items-center"}`}>
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3 md:flex-nowrap">
         <Link href="/" className="flex items-center gap-2">
           <img
             src="/brand-logo.png"
             alt="BabaiBazaar logo"
             className="h-10 w-10 rounded-lg border border-neutral-200 object-cover"
           />
-          <div className={isPhoneUi ? "hidden" : "block"}>
+          <div className="hidden md:block">
             <div className="text-base font-semibold text-neutral-900">BabaiBazaar</div>
             <div className="text-xs text-emerald-700">Fast local delivery</div>
           </div>
         </Link>
 
-        <div className={`${isPhoneUi ? "order-3 w-full min-w-0" : "flex-1 min-w-0"}`}>{showSearch ? <NavbarSearch /> : null}</div>
+        <div className="order-3 w-full min-w-0 md:order-none md:flex-1">{showSearch ? <NavbarSearch /> : null}</div>
 
         <nav
-          className={`flex items-center rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 via-lime-50 to-sky-50 p-1 ${
-            isPhoneUi ? "order-4 w-full gap-1 overflow-x-auto whitespace-nowrap" : "gap-1"
-          }`}
+          className="order-4 flex w-full items-center gap-1 overflow-x-auto whitespace-nowrap rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 via-lime-50 to-sky-50 p-1 md:order-none md:w-auto md:overflow-visible"
         >
           {navItems.map((item) => {
             let isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
@@ -93,9 +90,7 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 font-medium transition ${
-                  isPhoneUi ? "text-[11px]" : "text-sm"
-                } ${
+                className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-[11px] font-medium transition md:text-sm ${
                   isActive
                     ? "bg-emerald-600 text-white shadow-sm"
                     : "text-neutral-700 hover:bg-white hover:text-neutral-900"
@@ -108,7 +103,7 @@ export default function Navbar() {
           })}
         </nav>
 
-        <div className={`relative ${isPhoneUi ? "order-2 ml-auto" : ""}`} ref={settingsRef}>
+        <div className="relative order-2 ml-auto md:order-none md:ml-0" ref={settingsRef}>
           <button
             type="button"
             onClick={() => setSettingsOpen((v) => !v)}
