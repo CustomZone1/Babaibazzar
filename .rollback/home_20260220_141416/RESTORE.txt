@@ -1,0 +1,3 @@
+Restore commands:
+Copy-Item 'd:\projects\bbabibazzar\.rollback\home_20260220_141416\page.tsx.bak' 'd:\projects\bbabibazzar\src\app\page.tsx' -Force
+Copy-Item 'd:\projects\bbabibazzar\.rollback\home_20260220_141416\Navbar.tsx.bak' 'd:\projects\bbabibazzar\src\components\Navbar.tsx' -Force

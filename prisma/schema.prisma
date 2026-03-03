@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  PACKING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum WalletTransactionType {
+  TOPUP
+  ORDER_DEBIT
+  UPI_CREDIT
+}
+
+enum WalletTopupRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum WalletUpiCreditStatus {
+  OPEN
+  CLAIMED
+}
+
+model Shop {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String?
+  addressLine String
+  isOpen      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+  orders   Order[]
+}
+
+model Product {
+  id     String @id @default(cuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  name     String
+  category String?
+  unit     String?
+  imageUrl String?
+
+  // stock shown to customers
+  inStock Boolean @default(true)
+  showInTrending    Boolean @default(false)
+  showInNewArrivals Boolean @default(false)
+
+  // ✅ soft delete (hide product without breaking old orders)
+  isActive Boolean @default(true)
+
+  shopPricePaise Int
+  appPricePaise  Int
+
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id     String @id @default(cuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Restrict)
+
+  status OrderStatus @default(PLACED)
+
+  customerName  String
+  customerPhone String
+  deliveryLine1 String
+  deliveryLine2 String?
+  landmark      String?
+  area          String?
+  notes         String?
+
+  paymentMode      String @default("COD")
+  deliveryFeePaise Int    @default(1000) // ₹10
+
+  subtotalAppPaise  Int
+  totalAppPaise     Int
+  subtotalShopPaise Int
+  marginPaise       Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items OrderItem[]
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  qty Int @default(1)
+
+  appPricePaise      Int
+  shopPricePaise     Int
+  lineAppTotalPaise  Int
+  lineShopTotalPaise Int
+}
+
+model CustomerAccount {
+  id                   String   @id @default(cuid())
+  name                 String
+  username             String   @unique
+  passwordHash         String   @map("password_hash")
+  defaultDeliveryLine1 String?  @map("default_delivery_line1")
+  defaultDeliveryLine2 String?  @map("default_delivery_line2")
+  defaultLandmark      String?  @map("default_landmark")
+  defaultArea          String?  @map("default_area")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("customer_accounts")
+}
+
+model WalletAccount {
+  username    String   @id
+  balancePaise Int     @default(0) @map("balance_paise")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  transactions WalletTransaction[]
+  topupRequests WalletTopupRequest[]
+  claimedCredits WalletUpiCredit[] @relation("WalletCreditClaimedBy")
+
+  @@map("wallet_accounts")
+}
+
+model WalletTransaction {
+  id       String        @id @default(cuid())
+  username String
+  account  WalletAccount @relation(fields: [username], references: [username], onDelete: Cascade)
+
+  type              WalletTransactionType
+  amountPaise       Int      @map("amount_paise")
+  balanceAfterPaise Int      @map("balance_after_paise")
+  note              String?
+  refOrderId        String?  @map("ref_order_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([username, createdAt], map: "idx_wallet_txn_username_created")
+  @@index([type, refOrderId], map: "idx_wallet_txn_type_ref_order")
+  @@unique([username, type, refOrderId], map: "uq_wallet_txn_username_type_ref_order")
+  @@map("wallet_transactions")
+}
+
+model WalletTopupRequest {
+  id       String        @id @default(cuid())
+  username String
+  account  WalletAccount @relation(fields: [username], references: [username], onDelete: Cascade)
+
+  amountPaise Int                      @map("amount_paise")
+  upiRef      String                   @map("upi_ref")
+  status      WalletTopupRequestStatus @default(PENDING)
+  createdAt   DateTime                 @default(now()) @map("created_at")
+
+  @@index([username, createdAt], map: "idx_wallet_topup_req_username_created")
+  @@map("wallet_topup_requests")
+}
+
+model WalletUpiCredit {
+  id              String              @id @default(cuid())
+  transactionId   String              @unique @map("transaction_id")
+  amountPaise     Int                 @map("amount_paise")
+  status          WalletUpiCreditStatus @default(OPEN)
+  createdByAdmin  String?             @map("created_by_admin")
+  claimedByUsername String?           @map("claimed_by_username")
+  claimedBy       WalletAccount?      @relation("WalletCreditClaimedBy", fields: [claimedByUsername], references: [username], onDelete: SetNull)
+  claimedAt       DateTime?           @map("claimed_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+
+  @@index([createdAt], map: "idx_wallet_upi_credits_created")
+  @@map("wallet_upi_credits")
+}
