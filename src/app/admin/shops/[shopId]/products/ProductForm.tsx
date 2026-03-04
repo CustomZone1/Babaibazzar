@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Initial = {
@@ -77,12 +77,18 @@ export default function ProductForm({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(init.imageUrl?.trim() ? init.imageUrl.trim() : "");
+  const fileInputId = useId();
+  const submitLockRef = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
   async function uploadIfNeeded(): Promise<string | null> {
     if (!file) return imageUrl.trim() ? imageUrl.trim() : null;
+
+    if (!String(file.type || "").startsWith("image/")) {
+      throw new Error("Please choose an image file.");
+    }
 
     const fd = new FormData();
     fd.append("file", file);
@@ -122,6 +128,8 @@ export default function ProductForm({
       return;
     }
 
+    if (submitLockRef.current || loading) return;
+    submitLockRef.current = true;
     setLoading(true);
     try {
       const finalImageUrl = await uploadIfNeeded();
@@ -159,6 +167,7 @@ export default function ProductForm({
     } catch (err: any) {
       setError(err?.message || "Server error");
     } finally {
+      submitLockRef.current = false;
       setLoading(false);
     }
   }
@@ -172,6 +181,7 @@ export default function ProductForm({
       <div className="grid gap-2">
         <label className="text-sm font-medium">Name *</label>
         <input
+          disabled={loading}
           className="w-full rounded-lg border px-3 py-2 text-sm"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -182,6 +192,7 @@ export default function ProductForm({
       <div className="grid gap-2">
         <label className="text-sm font-medium">Category</label>
         <input
+          disabled={loading}
           className="w-full rounded-lg border px-3 py-2 text-sm"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -192,6 +203,7 @@ export default function ProductForm({
       <div className="grid gap-2">
         <label className="text-sm font-medium">Unit</label>
         <input
+          disabled={loading}
           className="w-full rounded-lg border px-3 py-2 text-sm"
           value={unit}
           onChange={(e) => setUnit(e.target.value)}
@@ -203,9 +215,11 @@ export default function ProductForm({
         <label className="text-sm font-medium">Product image</label>
 
         <input
+          id={fileInputId}
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp"
+          accept="image/*"
+          disabled={loading}
           className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0] || null;
@@ -221,13 +235,12 @@ export default function ProductForm({
         />
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="rounded-lg border px-3 py-2 text-sm font-medium hover:bg-gray-50"
-            onClick={() => fileInputRef.current?.click()}
+          <label
+            htmlFor={fileInputId}
+            className={`rounded-lg border px-3 py-2 text-sm font-medium ${loading ? "cursor-not-allowed bg-gray-100 text-gray-400" : "cursor-pointer hover:bg-gray-50"}`}
           >
             Choose image
-          </button>
+          </label>
 
           {file ? (
             <span className="truncate text-xs text-gray-700">{file.name}</span>
@@ -236,12 +249,11 @@ export default function ProductForm({
           )}
         </div>
 
-        <div className="text-xs text-gray-600">
-          Supported formats: JPG, PNG, WEBP. File will upload to <b>/public/uploads</b>.
-        </div>
+        <div className="text-xs text-gray-600">Supported formats: JPG, PNG, WEBP.</div>
 
         <label className="text-xs text-gray-600">Or paste Image URL (optional):</label>
         <input
+          disabled={loading}
           className="w-full rounded-lg border px-3 py-2 text-sm"
           value={imageUrl}
           onChange={(e) => {
@@ -258,7 +270,13 @@ export default function ProductForm({
       </div>
 
       <div className="flex items-center gap-2">
-        <input id="inStock" type="checkbox" checked={inStock} onChange={(e) => setInStock(e.target.checked)} />
+        <input
+          disabled={loading}
+          id="inStock"
+          type="checkbox"
+          checked={inStock}
+          onChange={(e) => setInStock(e.target.checked)}
+        />
         <label htmlFor="inStock" className="text-sm">
           In stock
         </label>
@@ -267,6 +285,7 @@ export default function ProductForm({
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
           <input
+            disabled={loading}
             id="showInTrending"
             type="checkbox"
             checked={showInTrending}
@@ -277,6 +296,7 @@ export default function ProductForm({
 
         <label className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
           <input
+            disabled={loading}
             id="showInNewArrivals"
             type="checkbox"
             checked={showInNewArrivals}
@@ -290,6 +310,7 @@ export default function ProductForm({
         <div className="grid gap-2">
           <label className="text-sm font-medium">Shop price (Rs) *</label>
           <input
+            disabled={loading}
             className="w-full rounded-lg border px-3 py-2 text-sm"
             inputMode="decimal"
             value={shopPriceInput}
@@ -302,6 +323,7 @@ export default function ProductForm({
         <div className="grid gap-2">
           <label className="text-sm font-medium">App price (Rs) *</label>
           <input
+            disabled={loading}
             className="w-full rounded-lg border px-3 py-2 text-sm"
             inputMode="decimal"
             value={appPriceInput}

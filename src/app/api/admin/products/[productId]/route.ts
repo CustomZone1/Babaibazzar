@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 function requireAdmin(req: NextRequest) {
   return req.cookies.get("bb_admin")?.value === "1";
@@ -78,6 +79,7 @@ export async function PATCH(
       data,
       select: {
         id: true,
+        shopId: true,
         name: true,
         category: true,
         unit: true,
@@ -90,6 +92,12 @@ export async function PATCH(
         appPricePaise: true,
       },
     });
+
+    revalidatePath("/");
+    revalidatePath("/products");
+    revalidatePath("/search");
+    revalidatePath("/admin/products");
+    revalidatePath(`/admin/shops/${updated.shopId}/products`);
 
     return NextResponse.json({ product: updated });
   } catch (e: any) {

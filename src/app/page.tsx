@@ -65,7 +65,9 @@ export default async function HomePage() {
     new Set(rawCats.map((c) => normalizeCategory(c.category)).filter((c): c is string => !!c))
   ).slice(0, 12);
 
-  const liveProductsCount = trending.length + freshArrivals.length;
+  const trendingIds = new Set(trending.map((p) => p.id));
+  const freshArrivalsUnique = freshArrivals.filter((p) => !trendingIds.has(p.id));
+  const liveProductsCount = new Set([...trending.map((p) => p.id), ...freshArrivalsUnique.map((p) => p.id)]).size;
 
   const t = {
     badge: "Local grocery store",
@@ -216,7 +218,7 @@ export default async function HomePage() {
           </Link>
         </div>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {freshArrivals.map((p) => {
+          {freshArrivalsUnique.map((p) => {
             const img = safeImg(p.imageUrl);
             return (
               <Link

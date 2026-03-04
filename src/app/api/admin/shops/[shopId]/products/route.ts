@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 function requireAdmin(req: NextRequest) {
   return req.cookies.get("bb_admin")?.value === "1";
@@ -78,6 +79,28 @@ export async function POST(
       return NextResponse.json({ error: "Shop not found" }, { status: 404 });
     }
 
+    const duplicateWindow = new Date(Date.now() - 2 * 60 * 1000);
+    const existingRecent = await prisma.product.findFirst({
+      where: {
+        shopId,
+        isActive: true,
+        name: { equals: name, mode: "insensitive" },
+        category,
+        unit,
+        shopPricePaise,
+        appPricePaise,
+        createdAt: { gte: duplicateWindow },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (existingRecent) {
+      return NextResponse.json(
+        { product: existingRecent, duplicate: true },
+        { status: 200 }
+      );
+    }
+
     const created = await prisma.product.create({
       data: {
         shopId,
@@ -95,6 +118,11 @@ export async function POST(
         isActive: true,
       },
     });
+
+    revalidatePath("/");
+    revalidatePath("/products");
+    revalidatePath("/search");
+    revalidatePath(`/admin/shops/${shopId}/products`);
 
     return NextResponse.json({ product: created }, { status: 201 });
   } catch (e: any) {

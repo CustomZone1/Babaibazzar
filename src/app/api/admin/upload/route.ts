@@ -32,6 +32,7 @@ async function uploadToSupabaseStorage(file: Blob, filename: string, contentType
 
   const filePath = `products/${filename}`;
   const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${filePath}`;
+  const body = Buffer.from(await file.arrayBuffer());
 
   const uploadRes = await fetch(uploadUrl, {
     method: "POST",
@@ -41,7 +42,7 @@ async function uploadToSupabaseStorage(file: Blob, filename: string, contentType
       "Content-Type": contentType || "application/octet-stream",
       "x-upsert": "true",
     },
-    body: file,
+    body,
   });
 
   if (!uploadRes.ok) {
@@ -75,11 +76,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 400 });
     }
 
-    const isVercel = process.env.VERCEL === "1";
+    const canUseSupabaseStorage = Boolean(
+      (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
 
-    if (isVercel) {
+    if (canUseSupabaseStorage) {
       const url = await uploadToSupabaseStorage(blob, filename, mimeType);
       return NextResponse.json({ success: true, url });
+    }
+
+    if (process.env.VERCEL === "1") {
+      return NextResponse.json(
+        {
+          error:
+            "Upload storage is not configured. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel.",
+        },
+        { status: 500 }
+      );
     }
 
     // Local dev fallback: write into /public/uploads
