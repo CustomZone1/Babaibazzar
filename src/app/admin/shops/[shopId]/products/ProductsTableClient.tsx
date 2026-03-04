@@ -22,13 +22,16 @@ function money(paise: number | null | undefined) {
 export default function ProductsTableClient({
   shopId,
   initialProducts,
+  initialNotice = "",
 }: {
   shopId: string;
   initialProducts: ProductRow[];
+  initialNotice?: string;
 }) {
   const [products, setProducts] = useState<ProductRow[]>(initialProducts);
   const [busyById, setBusyById] = useState<Record<string, boolean>>({});
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState(initialNotice);
 
   const rows = useMemo(() => products, [products]);
 
@@ -47,6 +50,7 @@ export default function ProductsTableClient({
 
   async function onToggleStock(row: ProductRow) {
     setError("");
+    setNotice("");
     setBusyById((prev) => ({ ...prev, [row.id]: true }));
     const prevRows = products;
 
@@ -56,6 +60,7 @@ export default function ProductsTableClient({
 
     try {
       await patchProduct(row.id, { inStock: !row.inStock });
+      setNotice(`${row.name} marked as ${row.inStock ? "out of stock" : "in stock"}.`);
     } catch (e: any) {
       setProducts(prevRows);
       setError(e?.message || "Failed to update stock");
@@ -66,6 +71,7 @@ export default function ProductsTableClient({
 
   async function onRemove(row: ProductRow) {
     setError("");
+    setNotice("");
     setBusyById((prev) => ({ ...prev, [row.id]: true }));
     const prevRows = products;
 
@@ -73,6 +79,7 @@ export default function ProductsTableClient({
 
     try {
       await patchProduct(row.id, { isActive: false });
+      setNotice(`${row.name} removed successfully.`);
     } catch (e: any) {
       setProducts(prevRows);
       setError(e?.message || "Failed to remove product");
@@ -86,6 +93,11 @@ export default function ProductsTableClient({
       {error ? (
         <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
           {error}
+        </div>
+      ) : null}
+      {!error && notice ? (
+        <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
+          {notice}
         </div>
       ) : null}
 

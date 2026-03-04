@@ -82,6 +82,7 @@ export default function ProductForm({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
 
   async function uploadIfNeeded(): Promise<string | null> {
     if (!file) return imageUrl.trim() ? imageUrl.trim() : null;
@@ -130,9 +131,11 @@ export default function ProductForm({
 
     if (submitLockRef.current || loading) return;
     submitLockRef.current = true;
+    setStatus(file ? "Uploading image..." : "Saving product...");
     setLoading(true);
     try {
       const finalImageUrl = await uploadIfNeeded();
+      setStatus("Saving product...");
 
       const body = {
         name: name.trim(),
@@ -162,13 +165,16 @@ export default function ProductForm({
         return;
       }
 
-      router.push(`/admin/shops/${shopId}/products`);
+      const savedFlag = mode === "create" ? (data?.duplicate ? "duplicate" : "created") : "updated";
+      setStatus("Saved. Opening products...");
+      router.push(`/admin/shops/${shopId}/products?saved=${savedFlag}`);
       router.refresh();
     } catch (err: any) {
       setError(err?.message || "Server error");
     } finally {
       submitLockRef.current = false;
       setLoading(false);
+      setStatus("");
     }
   }
 
@@ -341,6 +347,7 @@ export default function ProductForm({
       >
         {loading ? "Saving..." : mode === "create" ? "Add product" : "Save changes"}
       </button>
+      {loading && status ? <p className="text-xs text-emerald-700">{status}</p> : null}
     </form>
   );
 }

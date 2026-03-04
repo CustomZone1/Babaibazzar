@@ -5,10 +5,13 @@ import ProductsTableClient from "./ProductsTableClient";
 
 export default async function AdminShopProductsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ shopId: string }>;
+  searchParams?: Promise<{ saved?: string }>;
 }) {
   const { shopId } = await params;
+  const saved = (await searchParams)?.saved;
 
   const shop = await prisma.shop.findUnique({
     where: { id: shopId },
@@ -32,6 +35,11 @@ export default async function AdminShopProductsPage({
     },
   });
 
+  let initialNotice = "";
+  if (saved === "created") initialNotice = "Product added successfully.";
+  else if (saved === "updated") initialNotice = "Product updated successfully.";
+  else if (saved === "duplicate") initialNotice = "Product already existed. Duplicate add was prevented.";
+
   return (
     <div className="mx-auto max-w-5xl p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -52,7 +60,7 @@ export default async function AdminShopProductsPage({
         </div>
       </div>
 
-      <ProductsTableClient shopId={shopId} initialProducts={products} />
+      <ProductsTableClient shopId={shopId} initialProducts={products} initialNotice={initialNotice} />
 
       <div className="mt-4 text-xs text-gray-500">"Remove" is soft delete (isActive=false).</div>
     </div>
