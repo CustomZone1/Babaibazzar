@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [nextUrl, setNextUrl] = useState("/admin/orders");
+  const [nextUrl, setNextUrl] = useState("/admin/products");
 
   const [passcode, setPasscode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,7 +13,7 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const v = new URLSearchParams(window.location.search).get("next") || "/admin/orders";
+    const v = new URLSearchParams(window.location.search).get("next") || "/admin/products";
     setNextUrl(v);
   }, []);
 

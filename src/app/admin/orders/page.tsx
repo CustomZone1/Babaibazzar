@@ -53,7 +53,12 @@ export default async function AdminOrdersPage({
 
   const orders = await prisma.order.findMany({
     where,
-    include: { items: true },
+    select: {
+      id: true,
+      createdAt: true,
+      totalAppPaise: true,
+      status: true,
+    },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
